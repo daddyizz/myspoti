@@ -91,6 +91,43 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
     /** Fires when a Web Player page load starts: the old page and its bridge are gone. */
     var onPageStarting: (() -> Unit)? = null
 
+    /*
+     * IRAMA EXPERIMENT (branch irama-login-chrome-experiment, NOT upstream):
+     * Google refuses sign-in from an embedded WebView ("This browser or app may not be
+     * secure"), even though this WebView already presents a desktop-Chrome user agent.
+     * So a navigation to accounts.google.com is handed to a Custom Tab (a real browser
+     * component, sharing Chrome's session) instead of loading inside the WebView.
+     * HONEST LIMIT, read before testing: a Custom Tab has its own cookie jar — the app
+     * cannot read Chrome's cookies, so a session completed in the tab does NOT move into
+     * this player WebView by itself. This experiment therefore tests (a) whether the
+     * Google page opens and signs in at all in a Custom Tab, and (b) whether the player
+     * WebView is logged in after the user returns and reloads. If (b) fails, the
+     * experiment has failed and the step-2 branch is the version to keep.
+     * The guard below stops the same Google URL from launching a tab twice (once from
+     * shouldOverrideUrlLoading, once from onPageStarted).
+     */
+    private var externalGoogleUrl: String? = null
+
+    private fun isGoogleSignIn(url: String): Boolean {
+        val host = runCatching { android.net.Uri.parse(url).host }.getOrNull().orEmpty()
+        return host == "accounts.google.com" || host.endsWith(".accounts.google.com")
+    }
+
+    private fun launchExternalLogin(view: WebView, url: String) {
+        if (externalGoogleUrl == url) return
+        externalGoogleUrl = url
+        Logbook.log("external login: opening Google sign-in in Custom Tab (experiment)")
+        val ok = runCatching {
+            androidx.browser.customtabs.CustomTabsIntent.Builder().build()
+                .launchUrl(context, android.net.Uri.parse(url))
+        }.isSuccess
+        if (!ok) {
+            Logbook.log("external login: Custom Tab failed, back to Spotify login in WebView")
+            externalGoogleUrl = null
+            main.post { view.loadUrl(LOGIN_URL) }
+        }
+    }
+
     /** Debug builds: extra logging (a proxy that fails, a device name rewritten…) — and CDP. */
     private val debuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
 
@@ -277,6 +314,12 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                // IRAMA EXPERIMENT: catch a Google redirect that shouldOverride missed.
+                if (isGoogleSignIn(url)) {
+                    view.stopLoading()
+                    launchExternalLogin(view, url)
+                    return
+                }
                 Logbook.log("page start ${Logbook.noQuery(url).take(120)}")
                 mainFrameFailed = false
                 // A load that never ends (measured: a reload's document request answered nothing
@@ -352,6 +395,11 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                // IRAMA EXPERIMENT: Google sign-in leaves the WebView for a Custom Tab.
+                if (isGoogleSignIn(request.url.toString())) {
+                    launchExternalLogin(view, request.url.toString())
+                    return true
+                }
                 val host = request.url.host.orEmpty()
                 // Stay on Spotify's own pages (player, login, consent); open nothing else.
                 // Exact or subdomain match: "evilspotify.com" must not count as Spotify.
