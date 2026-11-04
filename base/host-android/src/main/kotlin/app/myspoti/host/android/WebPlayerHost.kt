@@ -199,6 +199,13 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            // IRAMA EXPERIMENT v2: Spotify's social buttons open a popup window. With
+            // these off, window.open() is silently ignored, so tapping "Continue with
+            // Google" does nothing at all (seen in the 2026-11-05 test video: the login
+            // page never changes, no tab, no error). Turning them on lets
+            // onCreateWindow below catch the popup.
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
             mediaPlaybackRequiresUserGesture = false
             userAgentString = fingerprint.userAgent
             cacheMode = WebSettings.LOAD_DEFAULT
@@ -248,6 +255,25 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         }
         hostChannel = exposeToPlayer("MyspotiHost") { json -> _messages.tryEmit(json) }
         webChromeClient = object : WebChromeClient() {
+            // IRAMA EXPERIMENT v2: a popup window has no URL of its own at creation
+            // time, so it cannot be sent straight to a Custom Tab. Instead, hand the
+            // popup a throwaway WebView carrying this same client: when it starts
+            // loading, onPageStarted sees the Google URL and hands it to a Custom
+            // Tab exactly like a same-window navigation. The throwaway WebView is
+            // never shown (the Custom Tab is the visible browser); it is only a
+            // vehicle for catching the popup's first URL.
+            override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message): Boolean {
+                val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
+                val popup = WebView(view.context).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    webViewClient = view.webViewClient
+                }
+                transport.webView = popup
+                resultMsg.sendToTarget()
+                return true
+            }
+
             override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
                 if (message.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR ||
                     message.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.WARNING) {

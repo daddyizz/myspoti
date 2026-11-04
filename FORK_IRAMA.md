@@ -87,6 +87,16 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
 - Fail diubah eksperimen ini: `WebPlayerHost.kt`,
   `base/host-android/build.gradle.kts`, `base/gradle/libs.versions.toml`,
   dan fail ini.
+- v2 (2026-11-05, selepas ujian video): tekan "Continue with Google" tidak
+  buat apa-apa langsung — page login kekal, tiada tab, tiada error selama
+  10.9s. Punca: butang sosial Spotify buka popup window, dan WebView ini
+  tidak benarkan popup (`javaScriptCanOpenWindowsAutomatically` off, tiada
+  `onCreateWindow`), jadi popup itu dibuang senyap-senyap dan kod Custom
+  Tab v1 tidak pernah nampak URL Google. v2 benarkan popup
+  (`javaScriptCanOpenWindowsAutomatically` + `setSupportMultipleWindows`)
+  dan tangkapnya di `onCreateWindow` dengan WebView sementara yang pakai
+  client yang sama — `onPageStarted` WebView sementara itu akan nampak URL
+  Google dan halakan ke Custom Tab seperti navigasi biasa.
 
 ## Status fork di GitHub (dikemas kini 2026-11-04 malam)
 - Fork wujud: `daddyizz/myspoti`, branch `irama-redesign`, PR #1
