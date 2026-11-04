@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -193,7 +192,10 @@ internal fun TabBarContent(
 ) {
     // Held for the same reason the content lambda below is keyed: it is captured once per key.
     val currentOnTabClick by androidx.compose.runtime.rememberUpdatedState(onTabClick)
-    val pillShape = remember { RoundedCornerShape(percent = 50) }
+    // IRAMA step 2: the floating tab bar uses the IRAMA dock token. It was
+    // already a capsule upstream (50%), so this changes the token, not the
+    // silhouette — future token changes now flow into the bar.
+    val pillShape = Immersive.Dock
     val reduceMotion = rememberReduceMotion()
 
     // A factory, not a value: each of the two surfaces gets its own glass modifier.

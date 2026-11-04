@@ -15,33 +15,50 @@ import com.music.spotui.ui.look.ImmersiveDisplay
 import com.music.spotui.ui.look.ImmersiveSans
 
 /*
- * The Immersive look's tokens, shared by every Immersive screen so they read as one app:
- * a black page, Inter, large bold titles, rounded covers, translucent "glass" bars and an
- * accent taken from the playing cover where there is one.
+ * The Immersive look's tokens, shared by every Immersive screen so they read as one app.
+ *
+ * IRAMA redesign (fork of Myspoti, GPL-3.0 — see FORK_IRAMA.md): the Immersive look
+ * is re-skinned, not rewritten. Same object, same field names, so all 700+ Immersive
+ * call sites keep compiling and the :api contract is untouched.
+ * Before: black page, pink accent, 14dp cards.
+ * After: "Malam Gelora" violet night, Jingga Senja accent, 28dp cards, orb covers.
+ * Font stays bundled Inter (Look.kt) — swapping to Sora would need new font files
+ * and is deliberately NOT done in this first fork step, to keep the build intact.
  */
 object Immersive {
-    // Colours.
-    val Page = Color.Black
-    val Raised = Color(0xFF1C1C1E)
+    // IRAMA colours — Malam Gelora. No Spotify green anywhere in this theme.
+    val Malam = Color(0xFF140F2B)
+    val JinggaSenja = Color(0xFFFF6A3D)
+    val Mentari = Color(0xFFFFC53D)
+    val Lavender = Color(0xFF9B8CFF)
+    val Krim = Color(0xFFFFF8F0)
+    val UnguRedup = Color(0xFFB8B0D6)
+
+    // Colours (re-skinned, same names as upstream).
+    val Page = Malam
+    val Raised = Color(0xFF221A45)
     val Separator = Color.White.copy(alpha = 0.10f)
-    val Text = Color.White
-    val TextSecondary = Color.White.copy(alpha = 0.60f)
+    val Text = Krim
+    val TextSecondary = UnguRedup.copy(alpha = 0.85f)
     val TextTertiary = Color.White.copy(alpha = 0.38f)
-    /** The look's own pink until an Immersive accent colour is chosen in Settings, then that colour (links, the selected tab, toggles). */
+    /** IRAMA's own Jingga Senja until an Immersive accent colour is chosen in Settings, then that colour (links, the selected tab, toggles). */
     val Accent: Color get() = com.music.spotui.data.api.SupportReminder.run {
-        if (immersiveAccentChosen) immersiveAccent.color else Color(0xFFFF4F7B)
+        if (immersiveAccentChosen) immersiveAccent.color else JinggaSenja
     }
-    val GlassFill = Color(0xFF2C2C34).copy(alpha = 0.88f)
+    val GlassFill = Color(0xFF2E2360).copy(alpha = 0.88f)
     val GlassEdge = Color.White.copy(alpha = 0.12f)
     /** The red of a destructive swipe, menu entry or confirmation (Leave, Remove, an error). */
     val Destructive = Color(0xFFFF453A)
 
-    // Shapes.
-    val CoverSmall: Shape = RoundedCornerShape(6.dp)
-    val CoverMedium: Shape = RoundedCornerShape(10.dp)
-    val CoverLarge: Shape = RoundedCornerShape(14.dp)
-    val Card: Shape = RoundedCornerShape(14.dp)
-    val Button: Shape = RoundedCornerShape(14.dp)
+    // Shapes — IRAMA: softer, larger radii; orb is a full circle for the player.
+    val CoverSmall: Shape = RoundedCornerShape(12.dp)
+    val CoverMedium: Shape = RoundedCornerShape(20.dp)
+    val CoverLarge: Shape = RoundedCornerShape(28.dp)
+    val OrbCover: Shape = CircleShape
+    val Card: Shape = RoundedCornerShape(28.dp)
+    val Button: Shape = RoundedCornerShape(28.dp)
+    /** Floating dock capsule (bottom navigation), not a full-width bar. */
+    val Dock: Shape = RoundedCornerShape(999.dp)
 
     // Type (Inter).
     private val base = TextStyle(fontFamily = ImmersiveSans, color = Text)
