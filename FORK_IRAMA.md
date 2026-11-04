@@ -75,3 +75,33 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   (dari push langkah 2 ke branch yang sama) selesai dengan success.
 - VM ini tiada JDK dan tiada Android SDK, jadi `./gradlew assembleDebug`
   TIDAK dapat dijalankan di sini — GitHub Actions kekal jalan bukti build.
+
+## Fasa 3 + tandatangan tetap (2026-11-05)
+- Fasa 3, font: `Look.kt` kini pakai Sora untuk display
+  (`ImmersiveDisplay`) dan Plus Jakarta Sans untuk body
+  (`ImmersiveSans`), kedua-duanya OFL (lesen di
+  `base/licenses/Sora-OFL.txt` dan
+  `base/licenses/PlusJakartaSans-OFL.txt`). Kedua-duanya fail variable
+  dengan paksi weight sahaja (tiada opsz seperti Inter), jadi
+  `variationSettings` kini bawa weight sahaja. Classic tidak disentuh.
+- Nota teknikal: tool snapshot push tidak boleh bawa fail binari, jadi
+  fail TTF tidak di-commit. Workflow `android.yml` (job build) kini
+  muat turun kedua-dua TTF dari google/fonts pada masa build, sebelum
+  sebarang tugas Gradle — `Look.kt` merujuk `R.font.sora` dan
+  `R.font.plus_jakarta_sans`, dan fail itu wujud pada masa compile.
+- Tandatangan tetap: masalah "package conflicts" selama ini berpunca
+  daripada setiap runner Actions menandatangan APK debug dengan debug
+  key sendiri. Mulai build ini, job build decode keystore tetap Daddy
+  dari secret `MYSPOTI_KEYSTORE_BASE64` (nama sama yang job release
+  sudah guna, bersama `MYSPOTI_KEYSTORE_PASSWORD`,
+  `MYSPOTI_KEY_ALIAS`, `MYSPOTI_KEY_PASSWORD`) dan `build.gradle.kts`
+  debug kini pakai signingConfig "release" bila key itu wujud, debug
+  key bila tiada. `versionCode` debug kini `1000 + GITHUB_RUN_NUMBER`
+  (menaik, melebihi 200 lama), supaya installer kenali build baharu
+  sebagai update.
+- Amaran jujur: APK pertama dengan key baharu ini MASIH memerlukan
+  uninstall sekali, kerana keynya berbeza dari key runner lama yang
+  menandatangan app sedang terpasang. Selepas sekali itu, APK debug
+  berikutnya yang ditandatangan dengan key yang sama akan update
+  tanpa uninstall — selagi keystore dan password itu tidak hilang.
+  Keystore itu sendiri TIDAK di-commit ke repo.
