@@ -1,7 +1,8 @@
 package com.music.spotui.ui.immersive.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
@@ -19,17 +20,25 @@ import kotlin.random.Random
 /**
  * IRAMA waveform scrubber — the fork's signature player control.
  *
- * This is an ADDITIVE component: it does not replace the upstream player yet.
- * Wire it into the Immersive player by passing the player's real progress and
- * seek callback; until then it is a self-contained, compile-safe composable.
- * Played bars use the IRAMA accent, unplayed bars use the muted violet —
- * never a thin Spotify-style progress line, and never Spotify green.
+ * Wired into the Immersive player since step 2: [progress] is the player's real
+ * position fraction and a tap or drag seeks for real. When [onScrubChange] is
+ * supplied, a drag reports every move through it and [onScrubEnd] fires on
+ * release (the player's scrub state holds the handle there until the reported
+ * position settles); without those callbacks a tap seeks immediately via
+ * [onSeek]. Played bars use the IRAMA accent, unplayed bars use the muted
+ * violet — never a thin Spotify-style progress line, and never Spotify green.
+ *
+ * One gesture loop for taps and drags, as the upstream ThinSlider does: two
+ * separate detectors meant taps never landed, because the drag detector took
+ * the pointer and a tap has no drag to report.
  */
 @Composable
 fun IramaWaveformScrubber(
     progress: Float,
     onSeek: (Float) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onScrubChange: ((Float) -> Unit)? = null,
+    onScrubEnd: (() -> Unit)? = null,
 ) {
     // Stable pseudo-random bar heights (fixed seed, so the wave does not jump).
     val bars = remember {
@@ -42,8 +51,24 @@ fun IramaWaveformScrubber(
             .fillMaxWidth()
             .height(56.dp)
             .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    onSeek((offset.x / size.width).coerceIn(0f, 1f))
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val first = (down.position.x / size.width).coerceIn(0f, 1f)
+                    if (onScrubChange != null) onScrubChange(first) else onSeek(first)
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!pointer.pressed) {
+                            pointer.consume()
+                            break
+                        }
+                        if (pointer.positionChanged()) {
+                            val fraction = (pointer.position.x / size.width).coerceIn(0f, 1f)
+                            if (onScrubChange != null) onScrubChange(fraction)
+                            pointer.consume()
+                        }
+                    }
+                    if (onScrubChange != null) onScrubEnd?.invoke()
                 }
             }
     ) {

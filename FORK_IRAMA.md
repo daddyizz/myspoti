@@ -20,7 +20,30 @@ Myspoti memintas iklan Spotify; itu melanggar Terms of Use Spotify dan akaun
 boleh digantung. Fork ini tidak menambah atau membuang enjin itu — ia kekal
 seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
 
-## Apa yang diubah dalam branch `irama-redesign` (langkah 1 sahaja)
+## Apa yang diubah dalam branch `irama-redesign` (langkah 1 + 2)
+
+### Langkah 2 (2026-11-04 malam) — waveform disambung, orb dipakai
+1. `IramaWaveform.kt` — gesture kini satu loop `awaitEachGesture` (tap +
+   drag), ikut corak ThinSlider upstream: dua detector berasingan akan buat
+   tap tak sampai. Callback baru: `onScrubChange` (setiap gerak drag) dan
+   `onScrubEnd` (bila lepas); tanpa callback itu, tap terus `onSeek`.
+2. `player/PlayerControls.kt` — `PlayerScrubber` Immersive kini guna
+   `IramaWaveformScrubber` dengan progress sebenar (`scrub.shown(...)`) dan
+   seek sebenar (`scrub.drag` + `scrub.release` → `actions.seekTo`). Bar
+   nipis ThinSlider di player Immersive diganti; Classic dan podcast kekal
+   kawalan masing-masing. Nota jujur: sheen "loading" ThinSlider semasa
+   buffering tiada pada waveform — penunjuk loading masih ada di butang
+   transport player.
+3. `player/ImmersivePlayer.kt` — `ArtCorner` kini `Immersive.OrbCover`:
+   cover full-player (portrait + landscape) jadi bulat penuh, bukan petak
+   bucu 8dp. Podcast player punya `ArtCorner` sendiri tidak disentuh.
+4. `shell/ImmersiveTabBar.kt` — tab bar terapung kini guna token
+   `Immersive.Dock`. Bentuknya sudah kapsul di upstream (50%), jadi ini
+   pertukaran token, bukan perubahan siluet.
+5. Masih tidak diubah: `:api`, `:api-spotify`, `:host-android`, enjin
+   playback, login, extension, `applicationId`, dan Classic look.
+
+### Langkah 1
 1. `base/app/.../ui/immersive/ImmersiveTheme.kt` — token Immersive sahaja:
    - Page: hitam → `#140F2B` (Malam Gelora)
    - Raised: `#1C1C1E` → `#221A45`; GlassFill → `#2E2360`
@@ -42,24 +65,13 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
 - Classic look tidak disentuh. Hanya Immersive yang di-skin semula.
 - Tiada hijau Spotify (`#1DB954` / `#22C55E`) ditambah di mana-mana.
 
-## Status fork di GitHub (disemak 2026-11-04, 10:44+)
-- Identiti GitHub disahkan: `daddyizz` (https://github.com/daddyizz).
-- **Fork melalui connector Muse GAGAL: 403 "Resource not accessible by
-  integration".** Token GitHub App Muse tidak ada kebenaran fork repo ini.
-- Jadi fork di github.com BELUM wujud. Kerja di atas hanya wujud sebagai
-  branch tempatan `irama-redesign` dalam `workspace/irama-fork/myspoti/`
-  (clone upstream commit `8e8898a`).
-- Untuk push ke GitHub, Daddy perlu, dari browser sendiri:
-  1. Buka https://github.com/kota-zo/myspoti dan tekan **Fork** → akaun daddyizz.
-  2. Dalam GitHub App Muse, pilih repo fork itu (Select repositories).
-  3. Beritahu Oyen "fork dah siap" — barulah Oyen cuba push branch ini melalui
-     connector, dan semak semula di GitHub sebelum kata siap.
-
-## Build APK (belum boleh disahkan di VM ini)
-- VM ini tiada JDK dan tiada Android SDK (`java: command not found`, tiada
-  `~/Android`), jadi `./gradlew assembleDebug` TIDAK dapat dijalankan di sini.
-- Jangan anggap branch ini "siap compile" sehingga build sebenar dijalankan.
-- Build sebenar (ikut README upstream): JDK 17+, Android SDK, compileSdk 37,
-  kemudian dari `base/`: `./gradlew assembleDebug`.
-  Atau guna GitHub Actions dalam fork selepas push — itu jalan paling bersih
-  untuk Daddy tanpa Android Studio.
+## Status fork di GitHub (dikemas kini 2026-11-04 malam)
+- Fork wujud: `daddyizz/myspoti`, branch `irama-redesign`, PR #1
+  ("IRAMA redesign step 1") masih open, tidak di-merge.
+- Langkah 1 dibuktikan compile oleh GitHub Actions: run 41779452628
+  (7m 17s, success), artifact `myspoti-debug` 35.4 MB; APK itu dipasang
+  dan berjalan lancar di telefon Daddy pada malam 2026-11-04.
+- Langkah 2 di atas belum dibuktikan compile sehingga Actions run baharu
+  (dari push langkah 2 ke branch yang sama) selesai dengan success.
+- VM ini tiada JDK dan tiada Android SDK, jadi `./gradlew assembleDebug`
+  TIDAK dapat dijalankan di sini — GitHub Actions kekal jalan bukti build.

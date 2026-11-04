@@ -78,6 +78,7 @@ import androidx.core.graphics.ColorUtils
 import app.myspoti.engine.R
 import com.music.spotui.di.Haptics
 import com.music.spotui.ui.immersive.Immersive
+import com.music.spotui.ui.immersive.components.IramaWaveformScrubber
 import com.music.spotui.ui.look.MeshPalette
 import com.music.spotui.ui.look.ThinSlider
 import com.music.spotui.ui.components.RepeatIcons
@@ -134,11 +135,18 @@ internal fun PlayerScrubber(
     // A crossfade: the times go from the outgoing song to the new one half way, with the
     // credits, dimmed through the switch rather than jumping at full strength.
     Column(Modifier.fillMaxWidth().graphicsLayer { alpha = state.blend?.let { 0.3f + 0.7f * it.wordsAlpha() } ?: 1f }) {
-        ThinSlider(
-            value = { frame.value; scrub.shown(state.positionMs(), state.durationMs) },
-            onValueChange = scrub::drag,
-            onValueChangeFinished = { scrub.release { onSeek((it * state.durationMs).toLong()) } },
-            loading = state.buffering && !scrub.scrubbing,
+        // IRAMA step 2: the waveform replaces the thin slider in the Immersive
+        // player only (Classic and podcast players keep their own controls).
+        // The tick redraws this column, as the times below already did.
+        frame.value
+        IramaWaveformScrubber(
+            progress = scrub.shown(state.positionMs(), state.durationMs),
+            onSeek = { fraction ->
+                scrub.drag(fraction)
+                scrub.release { onSeek((it * state.durationMs).toLong()) }
+            },
+            onScrubChange = scrub::drag,
+            onScrubEnd = { scrub.release { onSeek((it * state.durationMs).toLong()) } },
         )
         ScrubTimes(frame, scrub, state)
     }
