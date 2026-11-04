@@ -52,8 +52,11 @@ android {
     }
 
     // Release key from the CI secrets (env), else keystore/keystore.properties.
+    // IRAMA: envStore counts only when the file actually exists, so a debug
+    // build without the fixed key falls back to the debug key instead of
+    // failing on a missing keystore file.
     val envStore = System.getenv("MYSPOTI_KEYSTORE")
-    val hasReleaseKey = envStore != null || keystorePropertiesFile.exists()
+    val hasReleaseKey = (envStore != null && file(envStore).exists()) || keystorePropertiesFile.exists()
     // A stable release (a version without "-beta", given by CI) is never signed with the debug key:
     // without the release key the build stops. Local builds (no version) and -PoverDev are not stable releases.
     val stableRelease = !beta && findProperty("overDev") == null
@@ -81,6 +84,11 @@ android {
             applicationIdSuffix = ".dev"
             manifestPlaceholders["appLabel"] = "Myspoti dev"
             manifestPlaceholders["cliEnabled"] = "true"
+            // IRAMA: with the fixed key present (CI secrets), debug builds are
+            // signed with that key, so a later debug APK updates the installed
+            // one instead of hitting a signature conflict. Without it, the
+            // usual debug key is used, exactly as before.
+            signingConfig = signingConfigs.getByName(if (hasReleaseKey) "release" else "debug")
         }
         release {
             // Real key when provided (CI releases); otherwise the debug key, so a local
