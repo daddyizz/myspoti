@@ -26,12 +26,16 @@ jobs:
       # google/fonts instead of being committed. Look.kt already refers
       # to R.font.sora / R.font.plus_jakarta_sans; this step must run
       # before any Gradle task that compiles the app.
+      # NOTE: this workflow sets working-directory: base for run steps,
+      # so paths here are relative to base/ — NOT base/app/... (that
+      # would create base/base/app/... and the compile would fail with
+      # unresolved R.font.sora / R.font.plus_jakarta_sans).
       - name: IRAMA fonts
         run: |
-          mkdir -p base/app/src/main/res/font
-          curl -sSL --fail -o base/app/src/main/res/font/sora.ttf "https://github.com/google/fonts/raw/main/ofl/sora/Sora%5Bwght%5D.ttf"
-          curl -sSL --fail -o base/app/src/main/res/font/plus_jakarta_sans.ttf "https://github.com/google/fonts/raw/main/ofl/plusjakartasans/PlusJakartaSans%5Bwght%5D.ttf"
-          ls -lh base/app/src/main/res/font/sora.ttf base/app/src/main/res/font/plus_jakarta_sans.ttf
+          mkdir -p app/src/main/res/font
+          curl -sSL --fail -o app/src/main/res/font/sora.ttf "https://github.com/google/fonts/raw/main/ofl/sora/Sora%5Bwght%5D.ttf"
+          curl -sSL --fail -o app/src/main/res/font/plus_jakarta_sans.ttf "https://github.com/google/fonts/raw/main/ofl/plusjakartasans/PlusJakartaSans%5Bwght%5D.ttf"
+          ls -lh app/src/main/res/font/sora.ttf app/src/main/res/font/plus_jakarta_sans.ttf
 
       # IRAMA fixed signing key: one permanent key, so later debug APKs
       # update the installed app instead of failing on a signature
