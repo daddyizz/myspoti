@@ -23,28 +23,29 @@ fun ProvideLook(content: @Composable () -> Unit) {
 }
 
 /**
- * The Immersive look's typeface: Inter (SIL Open Font License 1.1, licenses/Inter-OFL.txt), the
- * free face closest to the system one of the player it follows, cut down to Latin. One variable
- * file with a weight axis and an optical-size axis: text sizes use its "Text" cut (opsz 14),
- * titles from 20sp up its "Display" cut (opsz 32), tighter and finer, as that face does.
+ * The Immersive look's typefaces (IRAMA phase 3, replacing upstream Inter):
+ * display = Sora, body = Plus Jakarta Sans, both SIL Open Font License 1.1
+ * (licenses/Sora-OFL.txt, licenses/PlusJakartaSans-OFL.txt). Both are variable
+ * files with a weight axis only (no optical-size axis, unlike Inter), so the
+ * variation settings carry weight alone. Classic is untouched: it does not use
+ * these families.
  */
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
-private fun inter(weight: Int, opticalSize: Float) = Font(
-    R.font.inter,
+private fun variableFont(resId: Int, weight: Int) = Font(
+    resId,
     weight = FontWeight(weight),
     variationSettings = androidx.compose.ui.text.font.FontVariation.Settings(
         androidx.compose.ui.text.font.FontVariation.weight(weight),
-        androidx.compose.ui.text.font.FontVariation.Setting("opsz", opticalSize),
     ),
 )
 
 private val weights = listOf(400, 500, 600, 700, 800)
 
 /** Body text, captions, buttons. */
-val ImmersiveSans = FontFamily(weights.map { inter(it, 14f) })
+val ImmersiveSans = FontFamily(weights.map { variableFont(R.font.plus_jakarta_sans, it) })
 
 /** Titles, the player's title and the lyrics (20sp and up). */
-val ImmersiveDisplay = FontFamily(weights.map { inter(it, 32f) })
+val ImmersiveDisplay = FontFamily(weights.map { variableFont(R.font.sora, it) })
 
 /**
  * The phone's "Remove animations" setting, read once at the root (see App) for both looks.
