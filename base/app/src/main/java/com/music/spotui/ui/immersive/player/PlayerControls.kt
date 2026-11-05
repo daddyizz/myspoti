@@ -227,13 +227,7 @@ internal fun CircleGlyph(
 /** The skip glyphs' touch box, beside the larger play button. */
 private val PLAYER_SKIP_TOUCH_SIZE = 64.dp
 
-/**
- * The skip glyphs are drawn a little flatter than they are wide, so the pair reads lower and
- * longer next to the play button without losing any width.
- */
-private const val PLAYER_SKIP_HEIGHT_SCALE = 0.85f
-
-/** Previous, play/pause, next: bare glyphs, no backgrounds. */
+/** Previous, play/pause, next: the play control is a filled orb, the skips are curved orbs. */
 @Composable
 internal fun TransportRow(
     isPlaying: Boolean,
@@ -250,12 +244,15 @@ internal fun TransportRow(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // IRAMA small items: Previous/Next as curved orbs flanking the Play orb
+        // (Raised discs, reusing the 4c orb parameter) instead of bare glyphs.
         TransportGlyph(
             icon = Icons.Rounded.SkipPrevious,
             contentDescription = stringResource(R.string.immersive_player_previous),
-            size = 64.dp,
+            size = 36.dp,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            heightScale = PLAYER_SKIP_HEIGHT_SCALE,
+            orb = Immersive.Raised,
+            orbSize = 64.dp,
             onClick = onPrevious,
         )
         if (isLoading) {
@@ -279,9 +276,10 @@ internal fun TransportRow(
         TransportGlyph(
             icon = Icons.Rounded.SkipNext,
             contentDescription = stringResource(R.string.immersive_player_next),
-            size = 64.dp,
+            size = 36.dp,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            heightScale = PLAYER_SKIP_HEIGHT_SCALE,
+            orb = Immersive.Raised,
+            orbSize = 64.dp,
             onClick = onNext,
         )
     }
