@@ -27,7 +27,11 @@ android {
     val beta = findProperty("appVersionName") == null || version.contains("-beta")
     defaultConfig {
         applicationId = if (beta) "app.myspoti" else "app.myspoti.stable"
-        manifestPlaceholders["appLabel"] = if (beta) "Myspoti Beta" else "Myspoti"
+        // IRAMA rebrand: the launcher label is IRAMA now; the applicationId
+        // is unchanged, so updates keep installing over the old app. The
+        // Myspoti origin credit stays in FORK_IRAMA.md and in the app's
+        // About text, per GPL-3.0.
+        manifestPlaceholders["appLabel"] = if (beta) "IRAMA Beta" else "IRAMA"
         // The adb command line (com.music.spotui.cli): betas and debug builds only.
         manifestPlaceholders["cliEnabled"] = beta.toString()
         minSdk = 29
@@ -82,7 +86,7 @@ android {
         debug {
             // Installs next to the release apps (own data, own sign-in).
             applicationIdSuffix = ".dev"
-            manifestPlaceholders["appLabel"] = "Myspoti dev"
+            manifestPlaceholders["appLabel"] = "IRAMA dev"
             manifestPlaceholders["cliEnabled"] = "true"
             // IRAMA: with the fixed key present (CI secrets), debug builds are
             // signed with that key, so a later debug APK updates the installed
@@ -98,7 +102,7 @@ android {
             // beta on the test phone without replacing the signed beta installed there.
             if (findProperty("overDev") != null) {
                 applicationIdSuffix = ".dev"
-                manifestPlaceholders["appLabel"] = "Myspoti dev"
+                manifestPlaceholders["appLabel"] = "IRAMA dev"
             }
             isMinifyEnabled = true
             isShrinkResources = true
