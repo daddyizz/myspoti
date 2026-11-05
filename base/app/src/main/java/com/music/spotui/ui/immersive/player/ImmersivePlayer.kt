@@ -238,6 +238,23 @@ fun ImmersivePlayer(
     val pauseScale = rememberPauseScale(state.playing)
     val volume = rememberPlayerVolume()
 
+    // IRAMA phase 4c: the orb cover turns slowly like a record while the song plays.
+    // The angle is kept when paused (the effect cancels, the Animatable stays), so
+    // pausing stops the disc where it is instead of snapping it back to zero.
+    val spin = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(state.playing) {
+        if (state.playing) {
+            while (true) {
+                spin.animateTo(
+                    spin.value + 360f,
+                    androidx.compose.animation.core.tween(
+                        20000, easing = androidx.compose.animation.core.LinearEasing,
+                    ),
+                )
+            }
+        }
+    }
+
     // The song's Canvas, behind the player once its first frame is drawn. The cover opens into it:
     // the clip fades in from a little closer while the sleeve grows and fades away. The lyrics or
     // the queue close it the same way back: the clip (paused under them) fades out to the cover's
@@ -381,6 +398,8 @@ fun ImmersivePlayer(
                                 shadowElevation = 10.dp.toPx() * (1f - p()) * (1f - opened)
                                 shape = ArtCorner
                                 clip = true
+                                // Full player only: the header thumbnail must not spin.
+                                rotationZ = if (panel == Panel.NONE) spin.value else 0f
                             }
                             .background(Color.Black.copy(alpha = 0.18f))
                             .dragToClose()
