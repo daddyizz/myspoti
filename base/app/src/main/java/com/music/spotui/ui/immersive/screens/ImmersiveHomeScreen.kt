@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -173,6 +174,13 @@ fun ImmersiveHomeScreen(navController: NavController) {
             }
             when {
                 feed != null && feed.sections.isNotEmpty() -> {
+                    // IRAMA phase 4b: the Mood hero leads the feed — one large Sora title
+                    // and a circular cover for the lead recommendation, over the shortcut grid.
+                    carousels.firstOrNull()?.items?.firstOrNull { it !is HomeItem.Artist }?.let { moodItem ->
+                        item(key = "home:mood-hero") {
+                            MoodHero(navController, moodItem, playingContext)
+                        }
+                    }
                     shortcuts?.let { tiles ->
                         item(key = "home:shortcuts") {
                             ShortcutGrid(navController, tiles, playingContext)
@@ -182,7 +190,14 @@ fun ImmersiveHomeScreen(navController: NavController) {
                         item(key = "home:section:$index:${section.title}") {
                             // The lead carousel gets the big cards, unless it is a row of artists.
                             val hero = index == 0 && section.items.none { it is HomeItem.Artist }
-                            if (hero) HeroSection(navController, section, playingContext) else ShelfSection(navController, section, playingContext)
+                            // IRAMA phase 4b: the second carousel becomes the "Sungai Baru"
+                            // orb row — circular covers in a horizontal river, not square cards —
+                            // unless it is an artist row, which keeps its round shelf cards.
+                            val orbRow = index == 1 && section.items.none { it is HomeItem.Artist } &&
+                                section.items.all { it is HomeItem.Album || it is HomeItem.Playlist }
+                            if (hero) HeroSection(navController, section, playingContext)
+                            else if (orbRow) OrbRowSection(navController, section, playingContext)
+                            else ShelfSection(navController, section, playingContext)
                         }
                     }
                     // Sections from extensions (home.sections), after Spotify's own.
@@ -309,6 +324,103 @@ private fun HeroSection(navController: NavController, section: HomeSection, play
                         onClick = { onHomeItemClick(navController, item) },
                         modifier = Modifier.width(cardWidth).pressHint(hint),
                         playing = item.isPlayingIn(playingContext.value),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * IRAMA phase 4b — "Mood hari ini": the lead recommendation as a large Sora title with its
+ * cover as an orb in a Jingga Senja halo. Tapping it opens the item, exactly like its card
+ * would; the data and navigation are Spotify's, only the presentation is IRAMA's.
+ */
+@Composable
+private fun MoodHero(navController: NavController, item: HomeItem, playingContext: State<String>) {
+    val playing = item.isPlayingIn(playingContext.value)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Immersive.Gutter, bottom = 22.dp)
+            .pressHint { prefetchHomeItem(item) }
+            .immersiveClickable(onClick = { onHomeItemClick(navController, item) })
+            .clip(Immersive.Card)
+            .background(Immersive.Raised)
+            .padding(20.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Mood hari ini",
+                style = Immersive.Caption.copy(color = Immersive.Accent, fontWeight = FontWeight.Bold),
+            )
+            Text(
+                text = item.name,
+                style = Immersive.LargeTitle.copy(color = if (playing) Immersive.Accent else Immersive.Text),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "Dengar ikut mood, bukan ikut senarai.",
+                style = Immersive.Subhead,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(start = 16.dp)
+                .size(112.dp)
+                .clip(Immersive.OrbCover)
+                .background(Immersive.JinggaSenja.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            ImmersiveCover(
+                url = item.imageUrl,
+                modifier = Modifier.size(96.dp),
+                shape = Immersive.OrbCover,
+                border = false,
+            )
+        }
+    }
+}
+
+/** IRAMA phase 4b — "Sungai Baru": a shelf rendered as circular covers, names below each orb. */
+@Composable
+private fun OrbRowSection(navController: NavController, section: HomeSection, playingContext: State<String>) {
+    Column(Modifier.padding(bottom = 26.dp)) {
+        SectionHeader(section.title)
+        val keys = remember(section.items) { homeItemKeys(section.items) }
+        ImmersiveShelfRow {
+            items(section.items.size, key = { keys[it] }) { i ->
+                val item = section.items[i]
+                val hint = remember(item) { { prefetchHomeItem(item) } }
+                val playing = item.isPlayingIn(playingContext.value)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .width(110.dp)
+                        .pressHint(hint)
+                        .immersiveClickable(onClick = { onHomeItemClick(navController, item) }),
+                ) {
+                    ImmersiveCover(
+                        url = item.imageUrl,
+                        modifier = Modifier.size(96.dp),
+                        shape = Immersive.OrbCover,
+                        border = false,
+                    )
+                    Text(
+                        text = item.name,
+                        style = Immersive.Subhead.copy(
+                            color = if (playing) Immersive.Accent else Immersive.Text,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 17.sp,
+                        ),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
             }
