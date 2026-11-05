@@ -243,7 +243,6 @@ internal fun TransportRow(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val playSize = 88.dp
     val playTouch = 92.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -265,11 +264,15 @@ internal fun TransportRow(
                 CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
             }
         } else {
+            // IRAMA phase 4c: the play control is a 72dp Jingga Senja orb, not a bare
+            // glyph — the touch target stays 92dp, only the visible orb is 72dp.
             TransportGlyph(
                 icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = stringResource(if (isPlaying) R.string.immersive_player_pause else R.string.immersive_player_play),
-                size = playSize,
+                size = 36.dp,
                 touchSize = playTouch,
+                orb = Immersive.JinggaSenja,
+                orbSize = 72.dp,
                 onClick = onPlayPause,
             )
         }
@@ -296,6 +299,9 @@ private fun TransportGlyph(
     touchSize: Dp = size,
     onClick: () -> Unit,
     heightScale: Float = 1f,
+    /** A filled orb behind the glyph; null keeps the bare glyph (previous/next). */
+    orb: Color? = null,
+    orbSize: Dp = size,
 ) {
     Box(
         modifier = Modifier
@@ -309,14 +315,28 @@ private fun TransportGlyph(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier
-                .size(size)
-                .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
-        )
+        if (orb != null) {
+            Box(
+                Modifier.size(orbSize).clip(CircleShape).background(orb),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = Color.White,
+                    modifier = Modifier.size(size),
+                )
+            }
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(size)
+                    .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
+            )
+        }
     }
 }
 
