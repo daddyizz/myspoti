@@ -210,6 +210,22 @@ object HideDjPref {
     }
 }
 
+/**
+ * IRAMA phase 4a — "Senja", the light theme (off by default, so Malam stays the
+ * theme for everyone who has not turned it on): the Immersive colour tokens read
+ * this as Compose state, so flipping it repaints the whole Immersive look at once.
+ */
+object SenjaPref {
+    private const val KEY = "irama_senja"
+    var on by androidx.compose.runtime.mutableStateOf(prefs(com.music.spotui.di.Graph.app).getBoolean(KEY, false))
+        private set
+
+    fun set(c: Context, value: Boolean) {
+        on = value
+        prefs(c).edit().putBoolean(KEY, value).apply()
+    }
+}
+
 fun getCrossfadeSeconds(c: Context): Int =
     prefs(c).getInt(KEY_CROSSFADE, 0).coerceIn(0, CrossfadePref.MAX)
 

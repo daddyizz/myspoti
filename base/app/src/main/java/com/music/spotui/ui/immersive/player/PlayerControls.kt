@@ -78,6 +78,7 @@ import androidx.core.graphics.ColorUtils
 import app.myspoti.engine.R
 import com.music.spotui.di.Haptics
 import com.music.spotui.ui.immersive.Immersive
+import com.music.spotui.ui.immersive.components.IramaWaveformScrubber
 import com.music.spotui.ui.look.MeshPalette
 import com.music.spotui.ui.look.ThinSlider
 import com.music.spotui.ui.components.RepeatIcons
@@ -134,11 +135,18 @@ internal fun PlayerScrubber(
     // A crossfade: the times go from the outgoing song to the new one half way, with the
     // credits, dimmed through the switch rather than jumping at full strength.
     Column(Modifier.fillMaxWidth().graphicsLayer { alpha = state.blend?.let { 0.3f + 0.7f * it.wordsAlpha() } ?: 1f }) {
-        ThinSlider(
-            value = { frame.value; scrub.shown(state.positionMs(), state.durationMs) },
-            onValueChange = scrub::drag,
-            onValueChangeFinished = { scrub.release { onSeek((it * state.durationMs).toLong()) } },
-            loading = state.buffering && !scrub.scrubbing,
+        // IRAMA step 2: the waveform replaces the thin slider in the Immersive
+        // player only (Classic and podcast players keep their own controls).
+        // The tick redraws this column, as the times below already did.
+        frame.value
+        IramaWaveformScrubber(
+            progress = scrub.shown(state.positionMs(), state.durationMs),
+            onSeek = { fraction ->
+                scrub.drag(fraction)
+                scrub.release { onSeek((it * state.durationMs).toLong()) }
+            },
+            onScrubChange = scrub::drag,
+            onScrubEnd = { scrub.release { onSeek((it * state.durationMs).toLong()) } },
         )
         ScrubTimes(frame, scrub, state)
     }
@@ -219,13 +227,7 @@ internal fun CircleGlyph(
 /** The skip glyphs' touch box, beside the larger play button. */
 private val PLAYER_SKIP_TOUCH_SIZE = 64.dp
 
-/**
- * The skip glyphs are drawn a little flatter than they are wide, so the pair reads lower and
- * longer next to the play button without losing any width.
- */
-private const val PLAYER_SKIP_HEIGHT_SCALE = 0.85f
-
-/** Previous, play/pause, next: bare glyphs, no backgrounds. */
+/** Previous, play/pause, next: the play control is a filled orb, the skips are curved orbs. */
 @Composable
 internal fun TransportRow(
     isPlaying: Boolean,
@@ -235,7 +237,6 @@ internal fun TransportRow(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val playSize = 88.dp
     val playTouch = 92.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -243,12 +244,15 @@ internal fun TransportRow(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // IRAMA small items: Previous/Next as curved orbs flanking the Play orb
+        // (Raised discs, reusing the 4c orb parameter) instead of bare glyphs.
         TransportGlyph(
             icon = Icons.Rounded.SkipPrevious,
             contentDescription = stringResource(R.string.immersive_player_previous),
-            size = 64.dp,
+            size = 36.dp,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            heightScale = PLAYER_SKIP_HEIGHT_SCALE,
+            orb = Immersive.Raised,
+            orbSize = 64.dp,
             onClick = onPrevious,
         )
         if (isLoading) {
@@ -257,20 +261,25 @@ internal fun TransportRow(
                 CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
             }
         } else {
+            // IRAMA phase 4c: the play control is a 72dp Jingga Senja orb, not a bare
+            // glyph — the touch target stays 92dp, only the visible orb is 72dp.
             TransportGlyph(
                 icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = stringResource(if (isPlaying) R.string.immersive_player_pause else R.string.immersive_player_play),
-                size = playSize,
+                size = 36.dp,
                 touchSize = playTouch,
+                orb = Immersive.JinggaSenja,
+                orbSize = 72.dp,
                 onClick = onPlayPause,
             )
         }
         TransportGlyph(
             icon = Icons.Rounded.SkipNext,
             contentDescription = stringResource(R.string.immersive_player_next),
-            size = 64.dp,
+            size = 36.dp,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            heightScale = PLAYER_SKIP_HEIGHT_SCALE,
+            orb = Immersive.Raised,
+            orbSize = 64.dp,
             onClick = onNext,
         )
     }
@@ -288,6 +297,9 @@ private fun TransportGlyph(
     touchSize: Dp = size,
     onClick: () -> Unit,
     heightScale: Float = 1f,
+    /** A filled orb behind the glyph; null keeps the bare glyph (previous/next). */
+    orb: Color? = null,
+    orbSize: Dp = size,
 ) {
     Box(
         modifier = Modifier
@@ -301,14 +313,28 @@ private fun TransportGlyph(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier
-                .size(size)
-                .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
-        )
+        if (orb != null) {
+            Box(
+                Modifier.size(orbSize).clip(CircleShape).background(orb),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = Color.White,
+                    modifier = Modifier.size(size),
+                )
+            }
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(size)
+                    .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
+            )
+        }
     }
 }
 

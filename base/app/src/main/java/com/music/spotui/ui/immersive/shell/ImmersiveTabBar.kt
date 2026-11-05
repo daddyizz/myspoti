@@ -5,6 +5,8 @@
  */
 package com.music.spotui.ui.immersive.shell
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,7 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -38,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
+import app.myspoti.engine.R
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.look.ImmersiveSans
 import com.music.spotui.ui.look.rememberReduceMotion
@@ -193,7 +198,10 @@ internal fun TabBarContent(
 ) {
     // Held for the same reason the content lambda below is keyed: it is captured once per key.
     val currentOnTabClick by androidx.compose.runtime.rememberUpdatedState(onTabClick)
-    val pillShape = remember { RoundedCornerShape(percent = 50) }
+    // IRAMA step 2: the floating tab bar uses the IRAMA dock token. It was
+    // already a capsule upstream (50%), so this changes the token, not the
+    // silhouette — future token changes now flow into the bar.
+    val pillShape = Immersive.Dock
     val reduceMotion = rememberReduceMotion()
 
     // A factory, not a value: each of the two surfaces gets its own glass modifier.
@@ -214,6 +222,10 @@ internal fun TabBarContent(
             ),
             reduceMotion = reduceMotion,
             contentKey = selectedTab,
+            // IRAMA: the dock's central Play button — a Jingga Senja orb that
+            // expands the full player (PlayerSheet.show, the same action as
+            // tapping the mini player). It navigates, it does not toggle play.
+            centerAction = { DockPlayButton() },
         ) {
             // Search is the odd one out: a circle of its own beside the pill.
             listOf(Routes.Home, Routes.Library).forEach { item ->
@@ -245,6 +257,26 @@ internal fun TabBarContent(
                 onClick = { currentOnTabClick(Routes.Search) },
             )
         }
+    }
+}
+
+/** IRAMA — the dock's central Play orb: Jingga Senja, white Play glyph, opens the player. */
+@Composable
+private fun DockPlayButton() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(Immersive.JinggaSenja)
+            .clickable { com.music.spotui.ui.navigation.PlayerSheet.show() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.PlayArrow,
+            contentDescription = stringResource(R.string.immersive_player_play),
+            tint = Color.White,
+            modifier = Modifier.size(26.dp),
+        )
     }
 }
 
