@@ -5,6 +5,8 @@
     <string name="aa_artists">Artists</string>
     <string name="settings_amoled_theme">AMOLED Theme</string>
     <string name="settings_amoled_theme_subtitle">Pure black background to save battery</string>
+    <string name="irama_senja_theme">Senja light theme</string>
+    <string name="irama_senja_theme_detail">Light cream page with a dark orange accent, instead of the violet night</string>
     <string name="main_update_available">A new update is available</string>
 
     <string name="notif_action_play">Play</string>
