@@ -126,6 +126,8 @@ private val GlassSpring = com.music.spotui.ui.immersive.motion.ImmersiveMotion.g
  * its own instance.
  * @param reduceMotion every move lands at once, with no lift
  * @param contentKey optional key that when changed retriggers the content lambda
+ * @param centerAction optional content between the tab pill and the standalone tab
+ *   (IRAMA: the dock's central Play button); null keeps the bar as it was
  * @param content the content defining the tabs
  */
 @Composable
@@ -138,6 +140,7 @@ internal fun FloatingTabBar(
     sizes: FloatingTabBarSizes = FloatingTabBarDefaults.sizes(),
     reduceMotion: Boolean = false,
     contentKey: Any? = null,
+    centerAction: (@Composable () -> Unit)? = null,
     content: FloatingTabBarScope.() -> Unit,
 ) {
     val scope = remember(contentKey) { FloatingTabBarScopeImpl().apply { content() } }
@@ -164,6 +167,14 @@ internal fun FloatingTabBar(
                 tabBarContentModifier = tabBarContentModifier,
                 modifier = Modifier.weight(1f),
             )
+        }
+        if (centerAction != null) {
+            Box(
+                Modifier.fillMaxHeight().aspectRatio(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                centerAction()
+            }
         }
         if (standaloneTab != null) {
             ExpandedStandaloneTab(
