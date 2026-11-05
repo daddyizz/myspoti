@@ -195,8 +195,13 @@ fun ImmersiveHomeScreen(navController: NavController) {
                             // unless it is an artist row, which keeps its round shelf cards.
                             val orbRow = index == 1 && section.items.none { it is HomeItem.Artist } &&
                                 section.items.all { it is HomeItem.Album || it is HomeItem.Playlist }
+                            // IRAMA small items: the third carousel becomes "Cerita Bunyi" —
+                            // one story, one big visual, stacked vertically (first three
+                            // items, real Spotify data, no invented editorial).
+                            val editorial = index == 2 && section.items.none { it is HomeItem.Artist }
                             if (hero) HeroSection(navController, section, playingContext)
                             else if (orbRow) OrbRowSection(navController, section, playingContext)
+                            else if (editorial) EditorialSection(navController, section, playingContext)
                             else ShelfSection(navController, section, playingContext)
                         }
                     }
@@ -429,6 +434,50 @@ private fun OrbRowSection(navController: NavController, section: HomeSection, pl
     }
 }
 
+/** IRAMA small items — "Cerita Bunyi": the section's first three items as tall editorial cards. */
+@Composable
+private fun EditorialSection(navController: NavController, section: HomeSection, playingContext: State<String>) {
+    Column(Modifier.padding(bottom = 26.dp)) {
+        SectionHeader(section.title)
+        Column(
+            modifier = Modifier.padding(horizontal = Immersive.Gutter),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            section.items.take(3).forEach { item ->
+                val hint = remember(item) { { prefetchHomeItem(item) } }
+                val playing = item.isPlayingIn(playingContext.value)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressHint(hint)
+                        .immersiveClickable(onClick = { onHomeItemClick(navController, item) }),
+                ) {
+                    ImmersiveCover(
+                        url = item.imageUrl,
+                        modifier = Modifier.fillMaxWidth().height(180.dp),
+                        shape = Immersive.CoverLarge,
+                        border = false,
+                    )
+                    Text(
+                        text = item.name,
+                        style = Immersive.Title.copy(color = if (playing) Immersive.Accent else Immersive.Text),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                    Text(
+                        text = item.cardSubtitle(),
+                        style = Immersive.Subhead,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** A titled row of square cards (round for artists). */
 @Composable
 private fun ShelfSection(navController: NavController, section: HomeSection, playingContext: State<String>) {
@@ -494,6 +543,26 @@ private fun ShortcutGrid(navController: NavController, items: List<HomeItem>, pl
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 10.dp).weight(1f),
                         )
+                        // IRAMA small items — "Koleksi Anda" mini-waveform: only the tile
+                        // that is actually playing shows waveform bars, as its playing
+                        // indicator. No fake audio shape is drawn for the others.
+                        if (playing) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(end = 10.dp),
+                            ) {
+                                listOf(8.dp, 14.dp, 10.dp, 16.dp).forEach { barHeight ->
+                                    Box(
+                                        Modifier
+                                            .width(2.dp)
+                                            .height(barHeight)
+                                            .clip(Immersive.OrbCover)
+                                            .background(Immersive.Accent),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 repeat(cols - rowItems.size) { Box(Modifier.weight(1f)) }
