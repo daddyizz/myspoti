@@ -491,6 +491,11 @@ private fun DisplayPage(open: (SettingsPage) -> Unit, back: () -> Unit) {
                 )
             }
             row { AccentRow(com.music.spotui.data.preferences.Look.IMMERSIVE) }
+            // IRAMA phase 4a — Senja: the light theme switch, Immersive only.
+            if (look == com.music.spotui.data.preferences.Look.IMMERSIVE) row {
+                ImmersiveSwitchRow(stringResource(R.string.irama_senja_theme), checked = com.music.spotui.data.preferences.SenjaPref.on,
+                    onChecked = { com.music.spotui.data.preferences.SenjaPref.set(ctx, it) }, detail = stringResource(R.string.irama_senja_theme_detail))
+            }
         }
         immersiveGroup("display") {
             if (look == com.music.spotui.data.preferences.Look.IMMERSIVE) row {
