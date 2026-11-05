@@ -5,6 +5,8 @@
  */
 package com.music.spotui.ui.immersive.shell
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -216,6 +219,10 @@ internal fun TabBarContent(
             ),
             reduceMotion = reduceMotion,
             contentKey = selectedTab,
+            // IRAMA: the dock's central Play button — a Jingga Senja orb that
+            // expands the full player (PlayerSheet.show, the same action as
+            // tapping the mini player). It navigates, it does not toggle play.
+            centerAction = { DockPlayButton() },
         ) {
             // Search is the odd one out: a circle of its own beside the pill.
             listOf(Routes.Home, Routes.Library).forEach { item ->
@@ -247,6 +254,26 @@ internal fun TabBarContent(
                 onClick = { currentOnTabClick(Routes.Search) },
             )
         }
+    }
+}
+
+/** IRAMA — the dock's central Play orb: Jingga Senja, white Play glyph, opens the player. */
+@Composable
+private fun DockPlayButton() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(Immersive.JinggaSenja)
+            .clickable { com.music.spotui.ui.navigation.PlayerSheet.show() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Rounded.PlayArrow,
+            contentDescription = stringResource(R.string.immersive_player_play),
+            tint = Color.White,
+            modifier = Modifier.size(26.dp),
+        )
     }
 }
 
