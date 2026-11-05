@@ -126,3 +126,24 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   Anda" mini-waveform (perlu sumber data / isyarat mainan sebenar,
   bukan hiasan palsu) — dicatat sebagai kerja lanjut, bukan
   didakwa siap.
+
+## Fasa 4c — Player baharu: orb Play + cover berputar (2026-11-05)
+- `player/PlayerControls.kt` sahaja untuk kawalan: butang Play/Pause
+  kini orb 72dp berisi Jingga Senja dengan ikon 36dp di tengah;
+  kawasan sentuh kekal 92dp, Previous/Next kekal glyph 64dp tanpa
+  isi (bentuk lengkung penuh untuk Prev/Next tidak dibuat — tiada
+  bentuk lengkung dalam kod asal untuk diguna semula, dan menambah
+  bentuk baharu di sini berisiko sentuh salah).
+- `player/ImmersivePlayer.kt` sahaja untuk cover: orb cover (sudah
+  bulat sejak Step 2) kini berputar perlahan seperti piring hitam
+  selagi lagu main (satu pusingan 20 saat, Animatable dikekalkan
+  supaya pause berhenti di sudut itu, bukan melompat ke sifar);
+  putaran hanya di player penuh, bukan thumbnail header, bukan
+  mod landskap, dan tidak kelihatan bila Canvas video sedang main
+  (cover pudar di bawah klip — kelakuan asal).
+- Lirik TIDAK disentuh dalam 4c: panel lirik asal sudahpun karaoke
+  tengah (baris semasa Sora 30sp tebal, baris lain lebih kecil dan
+  redup, teks tengah) — warna baris semasa ikut tint artwork asal,
+  bukan dipaksa Jingga Senja, supaya highlight perkataan yang
+  disapu (swept) tidak rosak. Waveform scrubber pula sudah siap
+  sejak Step 2.
