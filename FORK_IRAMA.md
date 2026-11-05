@@ -105,3 +105,24 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   berikutnya yang ditandatangan dengan key yang sama akan update
   tanpa uninstall — selagi keystore dan password itu tidak hilang.
   Keystore itu sendiri TIDAK di-commit ke repo.
+
+## Fasa 4b — Home baharu: Mood hero + Sungai Baru (2026-11-05)
+- Turutan Fasa 4 diputuskan Daddy 2026-11-05: Home dan Player dulu,
+  tema cerah Senja kemudian (Senja perlu seni bina suis tema kerana
+  `Immersive` ialah objek singleton dengan nilai tetap, dirujuk 700+
+  tempat — bukan sekadar token baharu).
+- `screens/ImmersiveHomeScreen.kt` sahaja disentuh; data, klik,
+  prefetch dan kontrak `:api` tidak berubah:
+  - Mood hero di atas grid shortcut: label "Mood hari ini", nama
+    item utama pertama (bukan artis) dalam `Immersive.LargeTitle`
+    (Sora), tagline IRAMA "Dengar ikut mood, bukan ikut senarai.",
+    dan cover item itu sebagai orb 96dp dalam halo Jingga Senja.
+    Ketik hero membuka item itu, sama seperti kadnya.
+  - Carousel kedua (bukan baris artis, hanya album/playlist) kini
+    baris orb "Sungai Baru": cover bulat 96dp (`Immersive.OrbCover`)
+    dengan nama di bawah, mendatar, bukan kad segi empat.
+    Carousel utama (kad besar) dan shelf lain tidak berubah.
+- Belum dibuat dalam 4b: "Cerita Bunyi" editorial dan "Koleksi
+  Anda" mini-waveform (perlu sumber data / isyarat mainan sebenar,
+  bukan hiasan palsu) — dicatat sebagai kerja lanjut, bukan
+  didakwa siap.
