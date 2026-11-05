@@ -165,3 +165,21 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   teks krim Malam atas latar krim Senja. Aksen pilihan pengguna
   dalam Settings (SupportReminder) kekal diutamakan atas aksen
   default kedua-dua mod.
+
+## Benda kecil design — siap sekali gus (2026-11-05)
+- Dock Play mini: `shell/FloatingTabBar.kt` dapat slot `centerAction`
+  pilihan (antara pill tab dan Search), dan `shell/ImmersiveTabBar.kt`
+  isikannya dengan orb Jingga Senja 48dp + ikon Play yang membuka
+  player penuh (`PlayerSheet.show()`, tindakan sama seperti ketik
+  mini player). Ia butang navigasi, bukan toggle play.
+- Cerita Bunyi: carousel ketiga Home (`ImmersiveHomeScreen.kt`)
+  kini kad editorial menegak — 3 item pertama, satu visual besar
+  180dp + tajuk + subtajuk, data Spotify sebenar, tiada editorial
+  rekaan. Baris artis kekal shelf.
+- Koleksi Anda mini-waveform: tile shortcut yang sedang main sahaja
+  tunjuk 4 bar waveform oren di sebelah nama (penunjuk sedang main);
+  tile lain tiada bentuk audio palsu.
+- Lengkung Prev/Next: `PlayerControls.kt` guna semula parameter orb
+  4c — Previous/Next kini disk Raised 64dp berisi ikon 36dp,
+  mengapit Play orb; konstanta `PLAYER_SKIP_HEIGHT_SCALE` yang
+  tidak lagi diguna dibuang.
