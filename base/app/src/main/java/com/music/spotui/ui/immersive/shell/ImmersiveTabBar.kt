@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
+import app.myspoti.engine.R
 import com.music.spotui.ui.immersive.Immersive
 import com.music.spotui.ui.look.ImmersiveSans
 import com.music.spotui.ui.look.rememberReduceMotion
@@ -269,7 +272,7 @@ private fun DockPlayButton() {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = androidx.compose.material.icons.Icons.Rounded.PlayArrow,
+            imageVector = Icons.Rounded.PlayArrow,
             contentDescription = stringResource(R.string.immersive_player_play),
             tint = Color.White,
             modifier = Modifier.size(26.dp),
