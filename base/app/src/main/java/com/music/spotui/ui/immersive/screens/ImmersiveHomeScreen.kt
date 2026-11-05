@@ -343,7 +343,8 @@ private fun MoodHero(navController: NavController, item: HomeItem, playingContex
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Immersive.Gutter, bottom = 22.dp)
+            .padding(horizontal = Immersive.Gutter)
+            .padding(bottom = 22.dp)
             .pressHint { prefetchHomeItem(item) }
             .immersiveClickable(onClick = { onHomeItemClick(navController, item) })
             .clip(Immersive.Card)
