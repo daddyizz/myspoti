@@ -183,3 +183,20 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   4c — Previous/Next kini disk Raised 64dp berisi ikon 36dp,
   mengapit Play orb; konstanta `PLAYER_SKIP_HEIGHT_SCALE` yang
   tidak lagi diguna dibuang.
+
+## Rebrand — nama & ikon IRAMA (2026-11-06)
+- Nama: label launcher `IRAMA` (debug: `IRAMA dev`, beta:
+  `IRAMA Beta`) melalui `manifestPlaceholders["appLabel"]` dalam
+  `base/app/build.gradle.kts`, dan `app_name` dalam
+  `res/values/strings.xml`. **applicationId TIDAK berubah**
+  (`app.myspoti` beta / `app.myspoti.stable`, debug `.dev`) —
+  jadi update terus install atas app lama tanpa uninstall dan
+  tanpa login semula.
+- Ikon: mark launcher upstream sudah berupa satu garis waveform —
+  dikekalkan bentuknya, warnanya sahaja ditukar: garis hijau
+  Spotify #1ED760 → Jingga Senja #FF6A3D
+  (`ic_launcher_foreground.xml`), latar hitam Spotify #121212 →
+  Malam #140F2B (`ic_launcher_background.xml`). Varian warna
+  ikon alternatif (blue/orange/pink/purple) tidak disentuh.
+- Kredit asal dikekalkan: nama Myspoti sebagai origin kekal dalam
+  dokumen ini dan dalam teks About app, selaras GPL-3.0.
