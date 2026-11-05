@@ -147,3 +147,21 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   bukan dipaksa Jingga Senja, supaya highlight perkataan yang
   disapu (swept) tidak rosak. Waveform scrubber pula sudah siap
   sejak Step 2.
+
+## Fasa 4a — Senja: tema cerah (2026-11-05)
+- Turutan: Senja dibuat LAST dalam Fasa 4 atas pilihan Daddy
+  (Home/Player dulu). Seni bina: `Immersive` ialah objek singleton
+  dengan 717 tapak panggilan, jadi Senja TIDAK dibuat sebagai objek
+  kedua — token warna dan style teks dalam `ImmersiveTheme.kt` kini
+  getter atas `SenjaPref` (Compose state, SharedPreferences key
+  `irama_senja`, default OFF = Malam tidak berubah). Suis "Senja
+  light theme" dalam Settings > Look, cuma bila look Immersive.
+- Palet Senja (DESIGN_SYSTEM.md): latar #FFF3E6, permukaan #FFFFFF,
+  dakwat #1D1536, aksen gelap #E8491A (4.5:1, bukan #FF6A3D mentah
+  atas latar cerah), lavender redup digelapkan #7A6FB0 supaya
+  baki waveform masih nampak atas krim, glass putih 88%.
+- Perangkap yang dielak: style teks (LargeTitle/Body/dll) pun
+  getter — style yang ditangkap sekali masa startup akan kekalkan
+  teks krim Malam atas latar krim Senja. Aksen pilihan pengguna
+  dalam Settings (SupportReminder) kekal diutamakan atas aksen
+  default kedua-dua mod.
