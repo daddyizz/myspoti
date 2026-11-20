@@ -21,6 +21,7 @@ dependencies {
     api(project(":api-spotify"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.webkit)
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.media)
     implementation(libs.serialization.json)
     implementation(libs.okhttp)

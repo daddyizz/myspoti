@@ -65,6 +65,39 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
 - Classic look tidak disentuh. Hanya Immersive yang di-skin semula.
 - Tiada hijau Spotify (`#1DB954` / `#22C55E`) ditambah di mana-mana.
 
+## Eksperimen login Chrome (branch `irama-login-chrome-experiment` — BUKAN `irama-redesign`)
+- Masalah: selepas install baru step 2 (2026-11-05), login Spotify melalui
+  Google gagal di skrin Google "Couldn't sign you in — This browser or app
+  may not be secure". Punca disahkan dari kod: login sudah HTTPS
+  (`LOGIN_URL` https, manifest `usesCleartextTraffic="false"`), dan WebView
+  ini sudah menyamar sebagai desktop Chrome Linux (`Fingerprint.kt`) —
+  Google tetap tolak kerana ia WebView terbenam, bukan kerana http.
+- Eksperimen ini (sahaja di branch eksperimen, `irama-redesign` dan backup
+  `irama-step2-backup` tidak disentuh): navigasi ke `accounts.google.com`
+  dalam `WebPlayerHost` dihalakan ke Custom Tab (komponen browser sebenar,
+  kongsi session Chrome) melalui `shouldOverrideUrlLoading` dan, sebagai
+  jaring keselamatan untuk redirect, `onPageStarted`. Dependency baru:
+  `androidx.browser:browser` 1.8.0 di `:host-android` sahaja.
+- Had jujur eksperimen ini: Custom Tab ada cookie jar sendiri dan app
+  tidak boleh baca cookie Chrome — jadi session yang selesai di tab TIDAK
+  berpindah sendiri ke WebView player. Ujian yang menentukan: (a) page
+  Google terbuka dan sign-in berjaya di Custom Tab, (b) selepas balik ke
+  app dan reload player, adakah player sudah login DAN lagu boleh main.
+  Kalau (b) gagal, eksperimen ini gagal — kekalkan branch step 2.
+- Fail diubah eksperimen ini: `WebPlayerHost.kt`,
+  `base/host-android/build.gradle.kts`, `base/gradle/libs.versions.toml`,
+  dan fail ini.
+- v2 (2026-11-05, selepas ujian video): tekan "Continue with Google" tidak
+  buat apa-apa langsung — page login kekal, tiada tab, tiada error selama
+  10.9s. Punca: butang sosial Spotify buka popup window, dan WebView ini
+  tidak benarkan popup (`javaScriptCanOpenWindowsAutomatically` off, tiada
+  `onCreateWindow`), jadi popup itu dibuang senyap-senyap dan kod Custom
+  Tab v1 tidak pernah nampak URL Google. v2 benarkan popup
+  (`javaScriptCanOpenWindowsAutomatically` + `setSupportMultipleWindows`)
+  dan tangkapnya di `onCreateWindow` dengan WebView sementara yang pakai
+  client yang sama — `onPageStarted` WebView sementara itu akan nampak URL
+  Google dan halakan ke Custom Tab seperti navigasi biasa.
+
 ## Status fork di GitHub (dikemas kini 2026-11-04 malam)
 - Fork wujud: `daddyizz/myspoti`, branch `irama-redesign`, PR #1
   ("IRAMA redesign step 1") masih open, tidak di-merge.
