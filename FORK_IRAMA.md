@@ -200,3 +200,8 @@ seperti upstream. Keputusan guna / edar adalah tanggungjawab Daddy sendiri.
   ikon alternatif (blue/orange/pink/purple) tidak disentuh.
 - Kredit asal dikekalkan: nama Myspoti sebagai origin kekal dalam
   dokumen ini dan dalam teks About app, selaras GPL-3.0.
+
+## LOGIN-UA TEST (24 Nov 2026, branch irama-login-ua-test — JANGAN MERGE)
+- Masalah: login email ditolak Spotify ("Oops! Something went wrong") sedangkan akaun sama boleh login di Chrome. Suspek: semakan bot tolak penyamaran UA desktop WebView.
+- Test: page login (accounts.spotify.com, challenge.spotify.com, /login, Google/Facebook/Apple) dapat UA mobile asal WebView + client hints mobile; player kekal UA desktop + hints desktop. Bila profil UA bertukar, load dimulakan semula sekali (`WebPlayerHost.applyUserAgentFor`).
+- Keputusan test telefon yang tentukan langkah seterusnya; kalau masih gagal, suspek seterusnya skrip PlayerChannel yang disuntik atas page login.

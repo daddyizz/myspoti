@@ -102,6 +102,15 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
     internal val fingerprint = Fingerprint.of(context)
     val userAgent: String get() = fingerprint.userAgent
 
+    // IRAMA LOGIN-UA TEST (24 Nov 2026, test branch only): the WebView's own
+    // user agent, as the system reports it before this file overrides it —
+    // a plain mobile WebView UA. Spotify's login now rejects the desktop
+    // disguise at the email step ("Oops! Something went wrong", reCAPTCHA
+    // notice), while the same account logs in fine in real Chrome. The test
+    // presents this plain UA on sign-in pages only; the player keeps the
+    // desktop disguise it needs. Captured in createView(); null until then.
+    private var defaultUserAgent: String? = null
+
     init {
         // Debug builds only: lets desktop tools (chrome://inspect, CDP) look at the page.
         if (debuggable) WebView.setWebContentsDebuggingEnabled(true)
@@ -163,6 +172,8 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             javaScriptEnabled = true
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
+            // IRAMA LOGIN-UA TEST: keep the system's own UA before overriding it.
+            if (defaultUserAgent == null) defaultUserAgent = userAgentString
             userAgentString = fingerprint.userAgent
             cacheMode = WebSettings.LOAD_DEFAULT
             loadWithOverviewMode = true
@@ -181,22 +192,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         }
         // Client hints must agree with the desktop user agent: by default the WebView announces
         // "Android WebView" / mobile in Sec-CH-UA headers and navigator.userAgentData.
-        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) {
-            val brands = fingerprint.brands.map {
-                androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand(it.name).setMajorVersion(it.major).setFullVersion(it.fullVersion).build()
-            }
-            androidx.webkit.WebSettingsCompat.setUserAgentMetadata(settings, androidx.webkit.UserAgentMetadata.Builder()
-                .setBrandVersionList(brands)
-                .setFullVersion(fingerprint.fullVersion)
-                .setPlatform("Linux")
-                .setPlatformVersion(fingerprint.kernel)
-                .setArchitecture("x86")
-                .setBitness(64)
-                .setMobile(false)
-                .setModel("")
-                .setWow64(false)
-                .build())
-        }
+        applyDesktopMetadata(this)
         // The page plays the audio: its renderer keeps its priority when the screen is off.
         setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         // Playback control requests leave from the app, without the WebView's X-Requested-With.
@@ -277,6 +273,15 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                // IRAMA LOGIN-UA TEST: a UA set after a load started does not
+                // apply to that load, so when the page wants the other profile
+                // the load is restarted with it. The restart's own page start
+                // sees the UA already matching and proceeds normally, so this
+                // can fire at most once per switch, never in a loop.
+                if (applyUserAgentFor(view, url)) {
+                    view.loadUrl(url)
+                    return
+                }
                 Logbook.log("page start ${Logbook.noQuery(url).take(120)}")
                 mainFrameFailed = false
                 // A load that never ends (measured: a reload's document request answered nothing
@@ -419,6 +424,70 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
     }
 
     /** Spotify's sign-in pages and the "Continue with Google / Facebook / Apple" ones (see [LoginLoad.isLoginUrl]). */
+    // IRAMA LOGIN-UA TEST: the two client-hint profiles, kept next to each
+    // other so a UA string is never paired with the other profile's hints
+    // (that mismatch is itself a bot signal). Mobile reuses the same brand
+    // list (Chromium/Google Chrome/grease, derived from the engine major);
+    // only the platform, architecture and mobile flag change.
+    private fun applyDesktopMetadata(webView: WebView) {
+        if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) return
+        val brands = fingerprint.brands.map {
+            androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand(it.name).setMajorVersion(it.major).setFullVersion(it.fullVersion).build()
+        }
+        androidx.webkit.WebSettingsCompat.setUserAgentMetadata(webView.settings, androidx.webkit.UserAgentMetadata.Builder()
+            .setBrandVersionList(brands)
+            .setFullVersion(fingerprint.fullVersion)
+            .setPlatform("Linux")
+            .setPlatformVersion(fingerprint.kernel)
+            .setArchitecture("x86")
+            .setBitness(64)
+            .setMobile(false)
+            .setModel("")
+            .setWow64(false)
+            .build())
+    }
+
+    private fun applyMobileMetadata(webView: WebView) {
+        if (!androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.USER_AGENT_METADATA)) return
+        val brands = fingerprint.brands.map {
+            androidx.webkit.UserAgentMetadata.BrandVersion.Builder().setBrand(it.name).setMajorVersion(it.major).setFullVersion(it.fullVersion).build()
+        }
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull().orEmpty()
+        val (arch, bitness) = when {
+            abi.startsWith("arm64") -> "arm" to 64
+            abi.startsWith("x86_64") -> "x86" to 64
+            abi.startsWith("x86") -> "x86" to 32
+            else -> "arm" to 32
+        }
+        androidx.webkit.WebSettingsCompat.setUserAgentMetadata(webView.settings, androidx.webkit.UserAgentMetadata.Builder()
+            .setBrandVersionList(brands)
+            .setFullVersion(fingerprint.fullVersion)
+            .setPlatform("Android")
+            .setPlatformVersion(android.os.Build.VERSION.RELEASE)
+            .setArchitecture(arch)
+            .setBitness(bitness)
+            .setMobile(true)
+            .setModel(android.os.Build.MODEL)
+            .setWow64(false)
+            .build())
+    }
+
+    /**
+     * IRAMA LOGIN-UA TEST: sign-in pages get the WebView's own mobile UA
+     * (and mobile hints); everything else keeps the desktop disguise.
+     * Returns true when the UA changed — the caller reloads the page, since
+     * a UA set after a load started does not apply to that load.
+     */
+    private fun applyUserAgentFor(webView: WebView, url: String): Boolean {
+        val login = isLoginPage(url)
+        val wanted = if (login) defaultUserAgent ?: return false else fingerprint.userAgent
+        if (webView.settings.userAgentString == wanted) return false
+        webView.settings.userAgentString = wanted
+        if (login) applyMobileMetadata(webView) else applyDesktopMetadata(webView)
+        Logbook.log("login-ua test: ${if (login) "mobile" else "desktop"} UA for ${Logbook.noQuery(url).take(90)}")
+        return true
+    }
+
     private fun isLoginPage(url: String?) = LoginLoad.isLoginUrl(url)
 
     fun load() = load(firstWatchMs = LOAD_WATCH_MS)
