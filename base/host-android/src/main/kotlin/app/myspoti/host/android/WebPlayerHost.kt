@@ -258,6 +258,12 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
                 if (url.startsWith("https://accounts.spotify.com/")) {
                     loginSteps++
                     Logbook.log("login step #$loginSteps ${request.method} ${url.substringAfter("accounts.spotify.com").substringBefore('?').take(90)}")
+                    // IRAMA XRW PROBE (24 Nov 2026, test branch only): prove whether the
+                    // WebView stamps X-Requested-With on login requests. Log header NAMES
+                    // plus the x-requested-with value only — never Cookie/Authorization.
+                    val reqHeaders = request.requestHeaders
+                    val xrw = reqHeaders.entries.firstOrNull { it.key.equals("x-requested-with", true) }?.value
+                    Logbook.log("probe headers ${request.method} ${url.substringAfter("accounts.spotify.com").substringBefore('?').take(60)}: x-requested-with=${xrw ?: "<absent>"} names=[${reqHeaders.keys.sorted().joinToString(",")}]")
                 }
                 // The music itself: fetched here, so the WebView's own package-name header never
                 // travels with it (see MediaProxy).
@@ -317,6 +323,12 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
                 if (request.url.host?.contains("spotify") == true && request.url.path?.contains("widevine-license") != true)
                     Logbook.logEvery("http ${response.statusCode} ${request.url.host}${request.url.path}", 60_000,
                         "http ${response.statusCode} ${request.method} ${request.url.toString().substringBefore('?').take(120)}")
+                // IRAMA XRW PROBE (24 Nov 2026, test branch only): the 400 answer to
+                // /login/code/send may say why in its headers — log them (server headers, safe).
+                if (request.url.path?.contains("login/code/send") == true) {
+                    val rh = response.responseHeaders.entries.joinToString(", ") { (k, v) -> "${k.lowercase()}=${v.take(80)}" }
+                    Logbook.log("probe 400 answer headers: $rh")
+                }
                 if (request.isForMainFrame && request.url.host == PLAYER_HOST && (response.statusCode >= 500 || response.statusCode == 429))
                     playerPageFailed("http ${response.statusCode}")
                 if (request.isForMainFrame && _loginLoad.value != LoginLoad.NONE && LoginLoad.isSpotifyAccounts(request.url.toString()) && response.statusCode >= 500)
