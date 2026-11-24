@@ -664,6 +664,9 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         main.removeCallbacks(loginTimeout)
         main.removeCallbacks(loginErrorWatch)
         _loginLoad.value = LoginLoad.LOADING
+        // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): a failed sign-in hides the
+        // page (see loginFailed); a fresh attempt must show it again.
+        view.visibility = View.VISIBLE
         view.alpha = 0f
         main.postDelayed(loginTimeout, LoginLoad.TIMEOUT_MS)
         Logbook.log("sign-in page: opening")
@@ -688,6 +691,12 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         Logbook.log("sign-in page failed ($what)")
         runCatching { view.stopLoading() }
         view.alpha = 0f
+        // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): alpha 0 alone leaves the page
+        // VISIBLE and on top of the Compose layer, so it still eats every touch — the error
+        // screen underneath shows, but its Retry button and export link cannot be pressed.
+        // INVISIBLE stops the touch (the framework uses the page's real visibility; only
+        // Chromium is told it is visible, so nothing else changes).
+        view.visibility = View.INVISIBLE
         setLoginLoad(LoginLoad.FAILED)
     }
 
