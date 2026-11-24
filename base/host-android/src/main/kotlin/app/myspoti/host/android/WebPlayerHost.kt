@@ -667,11 +667,15 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
 
     private var loginProbes = 0
     private var loginReloaded = false
+    // IRAMA BODY PROBE (24 Nov 2026, test branch only): true once the body-shape probe for
+    // POST /login/code/send has been logged for this sign-in attempt.
+    private var bodyProbeLogged = false
 
     /** The sign-in page was asked for: kept out of sight, with its clocks running, until it has content. */
     private fun beginLoginLoad() {
         loginProbes = 0
         loginReloaded = false
+        bodyProbeLogged = false
         main.removeCallbacks(loginProbe)
         main.removeCallbacks(loginTimeout)
         main.removeCallbacks(loginErrorWatch)
@@ -692,7 +696,14 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): a shown sign-in page is
         // watched for Spotify's own error banner, so a refused sign-in lands on the error
         // screen (with its export link) instead of leaving the user on the banner.
-        if (state == LoginLoad.SHOWN && isLoginPage(view.url)) main.postDelayed(loginErrorWatch, LoginLoad.PROBE_EVERY_MS * 2)
+        if (state == LoginLoad.SHOWN && isLoginPage(view.url)) {
+            main.postDelayed(loginErrorWatch, LoginLoad.PROBE_EVERY_MS * 2)
+            // IRAMA BODY PROBE (24 Nov 2026, test branch only): install the fetch/XHR hook
+            // (BODY_HOOK_JS) so the shape of the POST /login/code/send body is recorded —
+            // key names + type + set/empty only, never values — before the user presses
+            // Continue. The hook guards itself per document, so reinstalling is harmless.
+            view.evaluateJavascript(BODY_HOOK_JS) { answer -> Logbook.log("probe body hook: $answer") }
+        }
         if (state == LoginLoad.SHOWN || state == LoginLoad.NONE) view.alpha = 1f
         if (state == LoginLoad.NONE) return
         Logbook.log("sign-in page: ${state.name.lowercase()}")
@@ -742,6 +753,81 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
     }
 
     /**
+     * IRAMA BODY PROBE (24 Nov 2026, test branch only): wraps fetch and XHR on the sign-in
+     * page so the SHAPE of the POST /login/code/send body is recorded — key names, value
+     * type, and set/empty only. Values are never read into the log (no email, no token, no
+     * password), so the diagnostic can say whether a field (for example a captcha token) is
+     * missing or empty without ever recording what it contains. Stored on the page as
+     * window.__iramaBodyProbe; loginErrorWatch reads and logs it once.
+     */
+    private val BODY_HOOK_JS = """
+        (function(){
+          if (window.__iramaBodyHook) return 'already';
+          window.__iramaBodyHook = true;
+          window.__iramaBodyProbe = '';
+          function describe(body){
+            try {
+              var text = (typeof body === 'string') ? body : '';
+              if (!text) return {keys: [], bodyLen: 0};
+              if (text.charAt(0) === '{') {
+                var obj = JSON.parse(text);
+                if (!obj || typeof obj !== 'object') return {keys: [], bodyLen: text.length};
+                var keys = Object.keys(obj).map(function(k){
+                  var v = obj[k];
+                  var t = (v === null) ? 'null' : (Array.isArray(v) ? 'array' : typeof v);
+                  var empty = (v === '' || v === null || v === undefined);
+                  return k + ':' + t + ':' + (empty ? 'empty' : 'set');
+                });
+                return {keys: keys, bodyLen: text.length};
+              }
+              var parts = text.split('&');
+              var keys = [];
+              for (var i = 0; i < parts.length; i++) {
+                var kv = parts[i].split('=');
+                if (kv[0]) keys.push(kv[0] + ':form:' + (kv[1] ? 'set' : 'empty'));
+              }
+              return {keys: keys, bodyLen: text.length};
+            } catch (e) { return {keys: ['<unparsed>'], bodyLen: 0}; }
+          }
+          function record(url, method, via, body, status){
+            if (!url || url.indexOf('login/code/send') < 0) return;
+            var d = describe(body);
+            window.__iramaBodyProbe = JSON.stringify({url: 'login/code/send', method: method, via: via, keys: d.keys, bodyLen: d.bodyLen, status: (status === undefined ? null : status)});
+          }
+          var origFetch = window.fetch;
+          window.fetch = function(input, init){
+            var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+            var method = (init && init.method) || 'GET';
+            var body = (init && init.body) || null;
+            return origFetch.apply(this, arguments).then(function(resp){
+              try { record(url, method, 'fetch', body, resp.status); } catch (e) {}
+              return resp;
+            }, function(err){ try { record(url, method, 'fetch', body, null); } catch (e) {} throw err; });
+          };
+          var origOpen = XMLHttpRequest.prototype.open;
+          var origSend = XMLHttpRequest.prototype.send;
+          XMLHttpRequest.prototype.open = function(method, url){ this.__iramaUrl = url; this.__iramaMethod = method; return origOpen.apply(this, arguments); };
+          XMLHttpRequest.prototype.send = function(body){
+            var xhr = this;
+            try {
+              xhr.addEventListener('load', function(){ try { record(xhr.__iramaUrl || '', xhr.__iramaMethod || '', 'xhr', body, xhr.status); } catch (e) {} });
+            } catch (e) {}
+            return origSend.apply(this, arguments);
+          };
+          return 'installed';
+        })()
+    """.trimIndent()
+
+    /** evaluateJavascript wraps a string result in JSON quotes; unwrap it, or null if empty. */
+    private fun unquoteJsString(raw: String?): String? {
+        val t = raw?.trim() ?: return null
+        if (t.length < 2 || !t.startsWith("\"")) return null
+        val inner = t.substring(1, t.length - 1)
+        if (inner.isEmpty()) return null
+        return inner.replace("\\\"", "\"").replace("\\\\", "\\")
+    }
+
+    /**
      * IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): watches a shown sign-in page for
      * Spotify's own error banner. A page that painted and then refuses the flow ("Oops! Something
      * went wrong") is a failed sign-in, so it goes to the error screen — which carries the
@@ -756,6 +842,18 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
                 Logbook.log("sign-in page: Spotify's error banner is showing")
                 loginFailed("spotify error banner")
                 return@evaluateJavascript
+            }
+            // IRAMA BODY PROBE (24 Nov 2026, test branch only): read the body-shape probe
+            // the page hook stored (if the user already pressed Continue) and log it once.
+            if (!bodyProbeLogged) {
+                view.evaluateJavascript("(window.__iramaBodyProbe||'')") { probe ->
+                    if (_loginLoad.value != LoginLoad.SHOWN || !isLoginPage(view.url)) return@evaluateJavascript
+                    val text = unquoteJsString(probe)
+                    if (!text.isNullOrEmpty()) {
+                        bodyProbeLogged = true
+                        Logbook.log("probe body login/code/send: $text")
+                    }
+                }
             }
             main.postDelayed(loginErrorWatch, LoginLoad.PROBE_EVERY_MS * 2)
         }
