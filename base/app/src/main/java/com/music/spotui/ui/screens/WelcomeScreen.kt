@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +71,7 @@ import kotlin.math.sin
  */
 @Composable
 fun WelcomeScreen(onLogin: () -> Unit) {
+    val ctx = LocalContext.current
     // One entrance per part, a beat apart: logo, name, features, button.
     val parts = remember { List(4) { Animatable(0f) } }
     LaunchedEffect(Unit) {
@@ -128,6 +130,22 @@ fun WelcomeScreen(onLogin: () -> Unit) {
                     stringResource(R.string.welcome_privacy),
                     color = AppText.copy(alpha = 0.5f), fontFamily = AppSans, fontSize = 13.sp, lineHeight = 18.sp,
                     textAlign = TextAlign.Center, modifier = Modifier.padding(top = 14.dp),
+                )
+                // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): the export is
+                // unreachable while signed out — Settings sits behind the signed-in screens
+                // and the login page covers the whole screen — so the welcome screen gets
+                // its own export link. Same export + share as the Settings screen.
+                Text(
+                    stringResource(R.string.diagnostic_export_title),
+                    color = AppText.copy(alpha = 0.5f), fontFamily = AppSans, fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .pressable(0.96f, onClick = {
+                            val file = runCatching { app.myspoti.host.android.Logbook.export(ctx) }.getOrNull()
+                            if (file != null) shareDiagnosticReport(ctx, file)
+                            else android.widget.Toast.makeText(ctx, ctx.getString(R.string.diagnostic_export_failed), android.widget.Toast.LENGTH_SHORT).show()
+                        }),
                 )
             }
         }
