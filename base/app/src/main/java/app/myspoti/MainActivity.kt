@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -566,6 +567,7 @@ private fun ConnectingScreen() {
 /** The sign-in page did not come (or the player did not start after it): what happened, and a way to go again. */
 @androidx.compose.runtime.Composable
 private fun LoginProblemScreen(onRetry: () -> Unit) {
+    val ctx = LocalContext.current
     Column(
         Modifier.fillMaxSize().background(com.music.spotui.ui.theme.AppBackground).systemBarsPadding().padding(28.dp),
         verticalArrangement = Arrangement.Center,
@@ -583,5 +585,17 @@ private fun LoginProblemScreen(onRetry: () -> Unit) {
             Text(stringResource(R.string.retry_button), color = Color.Black, fontFamily = com.music.spotui.ui.theme.AppSans,
                 fontWeight = FontWeight.Bold, fontSize = 17.sp)
         }
+        // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): the export is unreachable
+        // while signed out, so the sign-in problem screen — the screen a failed sign-in lands
+        // on, including Spotify's own error banner — gets its own export link. Same export +
+        // share as the Settings screen.
+        Text(stringResource(R.string.diagnostic_export_title),
+            color = com.music.spotui.ui.theme.AppText.copy(alpha = 0.6f), fontFamily = com.music.spotui.ui.theme.AppSans,
+            fontSize = 15.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 20.dp).clickable {
+                val file = runCatching { Logbook.export(ctx) }.getOrNull()
+                if (file != null) com.music.spotui.ui.screens.shareDiagnosticReport(ctx, file)
+                else android.widget.Toast.makeText(ctx, ctx.getString(R.string.diagnostic_export_failed), android.widget.Toast.LENGTH_SHORT).show()
+            })
     }
 }

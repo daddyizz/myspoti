@@ -43,6 +43,18 @@ enum class LoginLoad {
         /** [PAINT_JS]'s answer as evaluateJavascript hands it back ("42", "0", "null"). */
         fun painted(answer: String?): Boolean = (answer?.trim()?.trim('"')?.toDoubleOrNull() ?: 0.0) > 0.0
 
+        /**
+         * Read in the page: whether Spotify's own error banner is showing ("Oops! Something went
+         * wrong"). The banner is the sign-in's failure, not a blank page: the page loaded and
+         * painted, but Spotify refused the flow (a half-finished sign-in left behind answers it
+         * too). IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): the banner is what the
+         * error screen watches for once the page is shown. English text only, as the page shows it.
+         */
+        const val ERROR_JS = "(function(){var t=(document.body.innerText||'');return t.indexOf('Oops! Something went wrong')>=0?1:0})()"
+
+        /** [ERROR_JS]'s answer as evaluateJavascript hands it back ("1", "0", "null"). */
+        fun hasError(answer: String?): Boolean = (answer?.trim()?.trim('"')?.toDoubleOrNull() ?: 0.0) > 0.0
+
         /** [probes] empty looks so far at this page; [reloaded]: it was already loaded again once. */
         fun blank(probes: Int, reloaded: Boolean): Blank = when {
             probes < RELOAD_AFTER -> Blank.WAIT

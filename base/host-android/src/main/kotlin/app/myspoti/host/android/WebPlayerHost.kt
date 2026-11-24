@@ -662,6 +662,7 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         loginReloaded = false
         main.removeCallbacks(loginProbe)
         main.removeCallbacks(loginTimeout)
+        main.removeCallbacks(loginErrorWatch)
         _loginLoad.value = LoginLoad.LOADING
         view.alpha = 0f
         main.postDelayed(loginTimeout, LoginLoad.TIMEOUT_MS)
@@ -672,6 +673,11 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
         if (_loginLoad.value == state) return
         _loginLoad.value = state
         if (state != LoginLoad.LOADING) { main.removeCallbacks(loginProbe); main.removeCallbacks(loginTimeout) }
+        main.removeCallbacks(loginErrorWatch)
+        // IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): a shown sign-in page is
+        // watched for Spotify's own error banner, so a refused sign-in lands on the error
+        // screen (with its export link) instead of leaving the user on the banner.
+        if (state == LoginLoad.SHOWN && isLoginPage(view.url)) main.postDelayed(loginErrorWatch, LoginLoad.PROBE_EVERY_MS * 2)
         if (state == LoginLoad.SHOWN || state == LoginLoad.NONE) view.alpha = 1f
         if (state == LoginLoad.NONE) return
         Logbook.log("sign-in page: ${state.name.lowercase()}")
@@ -711,6 +717,26 @@ class WebPlayerHost(private val context: Context) : BridgeHost {
                 }
                 LoginLoad.Blank.FAIL -> loginFailed("blank after a second load")
             }
+        }
+    }
+
+    /**
+     * IRAMA LOGIN DIAGNOSTIC (24 Nov 2026, test branch only): watches a shown sign-in page for
+     * Spotify's own error banner. A page that painted and then refuses the flow ("Oops! Something
+     * went wrong") is a failed sign-in, so it goes to the error screen — which carries the
+     * diagnostic export — instead of leaving the user stuck on the banner. Runs only while the
+     * page is a shown sign-in page; every turn re-checks both before reading the page again.
+     */
+    private val loginErrorWatch: Runnable = Runnable {
+        if (_loginLoad.value != LoginLoad.SHOWN || !isLoginPage(view.url)) return@Runnable
+        view.evaluateJavascript(LoginLoad.ERROR_JS) { answer ->
+            if (_loginLoad.value != LoginLoad.SHOWN || !isLoginPage(view.url)) return@evaluateJavascript
+            if (LoginLoad.hasError(answer)) {
+                Logbook.log("sign-in page: Spotify's error banner is showing")
+                loginFailed("spotify error banner")
+                return@evaluateJavascript
+            }
+            main.postDelayed(loginErrorWatch, LoginLoad.PROBE_EVERY_MS * 2)
         }
     }
 
